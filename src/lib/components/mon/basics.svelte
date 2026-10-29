@@ -3,10 +3,10 @@
 	import items from '$data/items.json';
 	import pokemon from '$data/pokemon.json';
 	import type { Form, Species } from '$extractors/types';
-	import { dn, i18n, statusName, t } from '$lib/i18n.svelte';
+	import { defaultNickname, dn, i18n, statusName, t } from '$lib/i18n.svelte';
 	import type { BoxMon, PartyMon } from '$parsers/types';
 	import { TextInput, RadioSelect, NumberInput, ItemIcon, DropdownSelect, Combobox } from '$ui';
-	import { Heading, P } from 'flowbite-svelte';
+	import { Button, Heading, P } from 'flowbite-svelte';
 
 	interface BasicsProps {
 		mon: PartyMon | BoxMon;
@@ -17,6 +17,7 @@
 
 	let { mon = $bindable(), species, form, PF }: BasicsProps = $props();
 	let hpRatio = $state('currentHP' in mon ? Math.ceil((mon.currentHP / mon.stats[0]) * 100) : 0);
+	let nicknameBytes = $derived('currentHP' in mon ? 11 : 10);
 
 	function resetMon(): void {
 		mon.form = species.forms.find((f) => f.index === 1)!.name;
@@ -39,8 +40,18 @@
 	}
 </script>
 
-<Heading tag="h5">{t('nickname')}</Heading>
-<TextInput bind:value={mon.nickname} maxLength={10} maxBytes={10} class="my-5" />
+<div class="flex items-center justify-between gap-3 mt-5">
+	<Heading tag="h5">{t('nickname')}</Heading>
+	<Button
+		size="sm"
+		color="purple"
+		title={t('resetNicknameHint')}
+		onclick={() => (mon.nickname = defaultNickname(mon.species, PF, nicknameBytes))}
+	>
+		{t('resetNickname')}
+	</Button>
+</div>
+<TextInput bind:value={mon.nickname} maxLength={10} maxBytes={nicknameBytes} class="my-5" />
 
 <Heading tag="h5">{t('speciesForm')}</Heading>
 <div class="flex gap-3 my-5">

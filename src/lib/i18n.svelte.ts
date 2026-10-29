@@ -94,6 +94,8 @@ const dictionary = {
 		apricorns: 'Apricorns',
 		wings: 'Wings',
 		nickname: 'Nickname',
+		resetNickname: 'Reset Nickname',
+		resetNicknameHint: 'Reset to the species name',
 		speciesForm: 'Species & Form',
 		heldItem: 'Held Item',
 		noHeldItem: 'This Pokémon has no held item.',
@@ -237,6 +239,8 @@ const dictionary = {
 		apricorns: '球果',
 		wings: '羽毛',
 		nickname: '昵称',
+		resetNickname: '重置昵称',
+		resetNicknameHint: '重置为种族名',
 		speciesForm: '物种与形态',
 		heldItem: '携带道具',
 		noHeldItem: '这只宝可梦没有携带道具。',
@@ -353,6 +357,24 @@ const zhChars = new Set(Object.values(charmapZh as Record<string, string>));
 /** Whether the Chinese ROM's charmap can encode this character. */
 export function isSupportedZhChar(char: string): boolean {
 	return zhChars.has(char);
+}
+
+/** Fit a name into a fixed byte field, reserving one byte for the terminator. */
+export function fitNameChars(name: string, maxBytes: number): string[] {
+	const out: string[] = [];
+	let used = 0;
+	for (const char of Array.from(name)) {
+		const size = isSupportedZhChar(char) ? 2 : 1;
+		if (used + size > maxBytes) break;
+		out.push(char);
+		used += size;
+	}
+	return out;
+}
+
+/** Default name used by the game when a Pokémon has no nickname. */
+export function defaultNickname(species: string, pf: PF, fieldBytes = 11): string[] {
+	return fitNameChars(dn('pokemon', species, pf), fieldBytes - 1);
 }
 
 export function t(key: UiKey): string {
