@@ -5,8 +5,8 @@ import { readString, retrieve } from '$parsers/utils';
 function parsePlayer(file: Uint8Array): Player {
 	return {
 		id: retrieve(file, addresses.wPlayerID, 2),
-		name: readString(file, addresses.wPlayerName, 7, false),
-		rivalName: readString(file, addresses.wRivalName, 7, false),
+		name: readString(file, addresses.wPlayerName, 11, false),
+		rivalName: readString(file, addresses.wRivalName, 11, false),
 		money: retrieve(file, addresses.wMoney, 3),
 		gender: ['Male', 'Female', 'Non-Binary'][file[addresses.wPlayerGender]]
 	};

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n, t } from '$lib/i18n.svelte';
 	import type { PartyMon } from '$parsers/types';
 	import { Progressbar, P } from 'flowbite-svelte';
 
@@ -7,13 +8,21 @@
 	let HPPercent = $derived(Math.round((mon.currentHP / mon.stats[0]) * 100));
 
 	let status = $derived(
-		{
-			Paralysis: 'PRZ',
-			Burn: 'BRN',
-			Freeze: 'FRZ',
-			Poison: 'PSN',
-			Sleep: 'SLP'
-		}[mon.status.name]
+		i18n.lang === 'zh'
+			? {
+					Paralysis: '麻',
+					Burn: '灼',
+					Freeze: '冻',
+					Poison: '毒',
+					Sleep: '睡'
+				}[mon.status.name]
+			: {
+					Paralysis: 'PRZ',
+					Burn: 'BRN',
+					Freeze: 'FRZ',
+					Poison: 'PSN',
+					Sleep: 'SLP'
+				}[mon.status.name]
 	);
 
 	let statusColor = $derived(
@@ -39,7 +48,7 @@
 	{/if}
 	{#if mon.currentHP === 0}
 		<div class="bg-red-500 rounded-md pl-2 pr-2">
-			<P class="text-xs !text-white">FNT</P>
+			<P class="text-xs !text-white">{i18n.lang === 'zh' ? '濒死' : t('fainted')}</P>
 		</div>
 	{/if}
 </div>

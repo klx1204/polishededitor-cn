@@ -1,7 +1,8 @@
 <script lang="ts">
 	import pokemon from '$data/pokemon.json';
+	import { dn, t } from '$lib/i18n.svelte';
 	import type { Pokedex } from '$parsers/types';
-	import { ColoredCard, TypeIcon, Cycler, FullCycler } from '$ui';
+	import { ColoredCard, TypeIcon, Cycler, FullCycler, DataLabel } from '$ui';
 	import { Heading } from 'flowbite-svelte';
 
 	interface PokedexProps {
@@ -11,18 +12,20 @@
 
 	let { pokedex = $bindable(), PF }: PokedexProps = $props();
 	let sortedMons = $derived.by(() => {
-		const result = pokemon[PF].sort((a, b) => a.index - b.index).map((species) => ({
-			id: species.id,
-			index: species.index,
-			name: species.name,
-			forms: species.forms.sort((a, b) => a.index - b.index)
-		}));
+		const result = [...pokemon[PF]]
+			.sort((a, b) => a.index - b.index)
+			.map((species) => ({
+				id: species.id,
+				index: species.index,
+				name: species.name,
+				forms: [...species.forms].sort((a, b) => a.index - b.index)
+			}));
 		return result;
 	});
 </script>
 
 <div class="flex gap-5 items-center my-5">
-	<Heading tag="h5" class="text-red-600 dark:text-red-400">CHANGE EVERY ENTRY:</Heading>
+	<Heading tag="h5" class="text-red-600 dark:text-red-400">{t('changeEveryEntry')}</Heading>
 	<FullCycler bind:pokedex />
 </div>
 
@@ -42,9 +45,9 @@
 						</div>
 						<div class="flex flex-col justify-between gap-5">
 							<Heading tag="h5">
-								{species.name}
+								<DataLabel kind="pokemon" value={species.name} {PF} inline />
 								{#if form.name != 'Plain'}
-									<span>: {form.name}</span>
+									<span>: {dn('form', form.name, PF)}</span>
 								{/if}
 							</Heading>
 							<div class="flex gap-5">

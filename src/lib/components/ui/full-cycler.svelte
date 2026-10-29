@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n.svelte';
 	import type { Pokedex } from '$parsers/types';
 	import { Button } from 'flowbite-svelte';
 	import { QuestionCircleSolid, EyeSolid, CheckCircleSolid } from 'flowbite-svelte-icons';
@@ -8,11 +9,16 @@
 	}
 	let { pokedex = $bindable() }: FullCyclerProps = $props();
 
-	const configs = [
-		{ bg: 'bg-gray-400', hover: 'hover:bg-gray-300', icon: QuestionCircleSolid, label: 'Unknown' },
-		{ bg: 'bg-yellow-500', hover: 'hover:bg-yellow-400', icon: EyeSolid, label: 'Seen' },
-		{ bg: 'bg-green-500', hover: 'hover:bg-green-400', icon: CheckCircleSolid, label: 'Caught' }
-	];
+	let configs = $derived([
+		{
+			bg: 'bg-gray-400',
+			hover: 'hover:bg-gray-300',
+			icon: QuestionCircleSolid,
+			label: t('unknown')
+		},
+		{ bg: 'bg-yellow-500', hover: 'hover:bg-yellow-400', icon: EyeSolid, label: t('seen') },
+		{ bg: 'bg-green-500', hover: 'hover:bg-green-400', icon: CheckCircleSolid, label: t('caught') }
+	]);
 
 	let currentValue = $state(0);
 	const config = $derived(configs[currentValue]);

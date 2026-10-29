@@ -1,5 +1,6 @@
 <script lang="ts">
 	import tmhms from '$data/tmhms.json';
+	import { dn } from '$lib/i18n.svelte';
 	import type { Item } from '$parsers/types';
 	import { Checkbox } from 'flowbite-svelte';
 
@@ -27,7 +28,9 @@
 		choices={contents.map((entry: { name: string; qty: number }) => ({
 			value: entry.name,
 			label:
-				entry.name + ' ' + tmhms[PF][entry.name as keyof (typeof tmhms)['polished' | 'faithful']]
+				dn('item', entry.name, PF) +
+				' ' +
+				dn('move', tmhms[PF][entry.name as keyof (typeof tmhms)['polished' | 'faithful']], PF)
 		}))}
 	/>
 </div>

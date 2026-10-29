@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n.svelte';
 	import { Button } from 'flowbite-svelte';
 	import { QuestionCircleSolid, EyeSolid, CheckCircleSolid } from 'flowbite-svelte-icons';
 
@@ -7,11 +8,16 @@
 	}
 	let { value = $bindable() }: CyclerProps = $props();
 
-	const configs = [
-		{ bg: 'bg-gray-400', hover: 'hover:bg-gray-300', icon: QuestionCircleSolid, label: 'Unknown' },
-		{ bg: 'bg-yellow-500', hover: 'hover:bg-yellow-400', icon: EyeSolid, label: 'Seen' },
-		{ bg: 'bg-green-500', hover: 'hover:bg-green-400', icon: CheckCircleSolid, label: 'Caught' }
-	];
+	let configs = $derived([
+		{
+			bg: 'bg-gray-400',
+			hover: 'hover:bg-gray-300',
+			icon: QuestionCircleSolid,
+			label: t('unknown')
+		},
+		{ bg: 'bg-yellow-500', hover: 'hover:bg-yellow-400', icon: EyeSolid, label: t('seen') },
+		{ bg: 'bg-green-500', hover: 'hover:bg-green-400', icon: CheckCircleSolid, label: t('caught') }
+	]);
 
 	const config = $derived(configs[value]);
 </script>

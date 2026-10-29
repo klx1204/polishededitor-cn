@@ -1,5 +1,6 @@
 <script lang="ts">
 	import natures from '$data/natures.json';
+	import { dn, t } from '$lib/i18n.svelte';
 	import type { BoxMon, PartyMon } from '$parsers/types';
 	import { NumberInput, TypeIcon } from '$ui';
 	import {
@@ -23,6 +24,8 @@
 	}
 
 	let { mon = $bindable(), PF }: StatsProps = $props();
+	const statKeys = ['hp', 'atk', 'def', 'speed', 'spAtk', 'spDef'] as const;
+	let statLabels = $derived(statKeys.map((key) => t(key)));
 
 	let hiddenPowerType = $derived.by(() => {
 		const types = [
@@ -55,35 +58,35 @@
 	});
 </script>
 
-<Heading tag="h5">Determinant Values</Heading>
+<Heading tag="h5">{t('determinantValues')}</Heading>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-5">
 	{#each mon.dvs as _, i}
 		<div>
-			<Label class="mb-[-10px]">{['HP', 'Atk', 'Def', 'Speed', 'Sp. Atk', 'Sp. Def'][i]}</Label>
+			<Label class="mb-[-10px]">{statLabels[i]}</Label>
 			<NumberInput bind:value={mon.dvs[i]} min={0} max={15} />
 		</div>
 	{/each}
 </div>
 
 <div class="flex items-center mt-5 gap-2">
-	<P>Hidden Power</P>
+	<P>{t('hiddenPower')}</P>
 	<TypeIcon type={hiddenPowerType} />
 </div>
 
-<Heading tag="h5" class="my-5">Effort Values</Heading>
+<Heading tag="h5" class="my-5">{t('effortValues')}</Heading>
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
 	{#each mon.evs as _, i}
 		<div>
-			<Label class="mb-[-10px]">{['HP', 'Atk', 'Def', 'Speed', 'Sp. Atk', 'Sp. Def'][i]}</Label>
+			<Label class="mb-[-10px]">{statLabels[i]}</Label>
 			<NumberInput bind:value={mon.evs[i]} min={0} max={255} />
 		</div>
 	{/each}
 </div>
 
-<Heading tag="h5" class="mb-5">Hyper Training</Heading>
+<Heading tag="h5" class="mb-5">{t('hyperTraining')}</Heading>
 
 <ButtonGroup class="hidden sm:flex border-0 ring-0 shadow-none">
-	{#each ['HP', 'Atk', 'Def', 'Speed', 'Sp. Atk', 'Sp. Def'] as stat, i}
+	{#each statLabels as stat, i}
 		<Button
 			onclick={() => (mon.hyperTraining[i] = !mon.hyperTraining[i])}
 			class={mon.hyperTraining[i]
@@ -97,7 +100,7 @@
 
 <div class="flex flex-col gap-2 sm:hidden">
 	<ButtonGroup class="flex w-full">
-		{#each ['HP', 'Atk', 'Def'] as stat, i}
+		{#each statLabels.slice(0, 3) as stat, i}
 			<Button
 				onclick={() => (mon.hyperTraining[i] = !mon.hyperTraining[i])}
 				class="{mon.hyperTraining[i]
@@ -109,7 +112,7 @@
 		{/each}
 	</ButtonGroup>
 	<ButtonGroup class="flex w-full">
-		{#each ['Speed', 'Sp. Atk', 'Sp. Def'] as stat, i}
+		{#each statLabels.slice(3) as stat, i}
 			<Button
 				onclick={() => (mon.hyperTraining[i + 3] = !mon.hyperTraining[i + 3])}
 				class="{mon.hyperTraining[i + 3]
@@ -122,22 +125,22 @@
 	</ButtonGroup>
 </div>
 
-<Heading tag="h5" class="my-5">Nature</Heading>
+<Heading tag="h5" class="my-5">{t('nature')}</Heading>
 <Table border={false}>
 	<TableHead>
 		<TableHeadCell class="text-center p-0">↑ \ ↓</TableHeadCell>
-		{#each ['Atk', 'Def', 'Speed', 'Sp. Atk', 'Sp. Def'] as stat}
+		{#each statLabels.slice(1) as stat}
 			<TableHeadCell class="text-center text-blue-600 dark:text-blue-400 font-semibold py-2 px-1"
 				>↓ {stat}</TableHeadCell
 			>
 		{/each}
 	</TableHead>
 	<TableBody>
-		{#each ['Atk', 'Def', 'Speed', 'Sp. Atk', 'Sp. Def'] as increasedStat, rowIndex}
+		{#each statLabels.slice(1) as increasedStat, rowIndex}
 			<TableBodyRow>
 				<TableBodyCell
 					class="text-center text-red-600 dark:text-red-400 font-semibold text-xs whitespace-nowrap py-2 px-2"
-					>↑ {increasedStat.toUpperCase()}</TableBodyCell
+					>↑ {increasedStat}</TableBodyCell
 				>
 				{#each Array(5).fill(null) as _, columnIndex}
 					<TableBodyCell class="text-center p-0">
@@ -148,7 +151,11 @@
 							class="w-full h-full px-2 rounded-none border-0 text-black dark:text-gray-400"
 							checkedClass="bg-purple-600 !text-white dark:bg-purple-500 dark:text-white hover:bg-primary-700 hover:text-white dark:hover:bg-primary-600 dark:hover:text-white"
 						>
-							{natures[PF].find((n) => n.index === rowIndex * 5 + columnIndex)!.name}
+							{dn(
+								'nature',
+								natures[PF].find((n) => n.index === rowIndex * 5 + columnIndex)!.name,
+								PF
+							)}
 						</RadioButton>
 					</TableBodyCell>
 				{/each}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Form } from '$extractors/types';
+	import { t } from '$lib/i18n.svelte';
 	import type { BoxMon, PartyMon } from '$parsers/types';
 	import { NumberInput, RadioSelect } from '$ui';
 	import { Heading, Label, P } from 'flowbite-svelte';
@@ -28,57 +29,57 @@
 </script>
 
 {#if mon.isEgg}
-	<Heading tag="h5" class="mb-[-10px]">Hatch Cycles</Heading>
+	<Heading tag="h5" class="mb-[-10px]">{t('hatchCycles')}</Heading>
 {:else}
-	<Heading tag="h5" class="mb-[-10px]">Happiness</Heading>
+	<Heading tag="h5" class="mb-[-10px]">{t('happiness')}</Heading>
 {/if}
 <NumberInput bind:value={mon.happiness} min={0} max={255} />
 
-<Heading tag="h5" class="my-5">Gender</Heading>
+<Heading tag="h5" class="my-5">{t('gender')}</Heading>
 {#if form.hasGender}
 	<RadioSelect
 		bind:value={mon.gender}
 		options={[
-			{ text: 'Male', id: 'Male' },
-			{ text: 'Female', id: 'Female' }
+			{ text: t('male'), id: 'Male' },
+			{ text: t('female'), id: 'Female' }
 		]}
 	/>
 {:else}
-	<P italic>This Pokemon is genderless.</P>
+	<P italic>{t('genderless')}</P>
 {/if}
 
-<Heading tag="h5" class="mt-5 mb-5">Shininess</Heading>
+<Heading tag="h5" class="mt-5 mb-5">{t('shininess')}</Heading>
 <RadioSelect
 	bind:value={mon.shininess}
 	options={[
-		{ text: 'Shiny', id: 'Shiny' },
-		{ text: 'Not Shiny', id: 'Not Shiny' }
+		{ text: t('shiny'), id: 'Shiny' },
+		{ text: t('notShiny'), id: 'Not Shiny' }
 	]}
 />
 
-<Heading tag="h5" class="mt-5 mb-5">Is Egg</Heading>
+<Heading tag="h5" class="mt-5 mb-5">{t('isEgg')}</Heading>
 <RadioSelect
 	bind:value={mon.isEgg}
 	options={[
-		{ text: 'Is Egg', id: true },
-		{ text: 'Is Not Egg', id: false }
+		{ text: t('isEggTrue'), id: true },
+		{ text: t('isEggFalse'), id: false }
 	]}
 	onchange={toggleEgg}
 />
 
-<Heading tag="h5" class="mt-5 mb-5 sm:mb-2">Pokerus</Heading>
+<Heading tag="h5" class="mt-5 mb-5 sm:mb-2">{t('pokerus')}</Heading>
 
 <div class="flex gap-x-8 gap-y-5 flex-wrap items-center">
 	<div class="hidden sm:block my-3">
 		<RadioSelect
 			bind:value={mon.pokerus.strain}
 			options={[
-				{ text: 'None', id: 'None' },
-				{ text: 'Cured', id: 'Cured' },
-				{ text: 'Strain 1', id: 1 },
-				{ text: 'Strain 2', id: 2 },
-				{ text: 'Strain 3', id: 3 },
-				{ text: 'Strain 4', id: 4 }
+				{ text: t('none'), id: 'None' },
+				{ text: t('cured'), id: 'Cured' },
+				{ text: t('strain') + ' 1', id: 1 },
+				{ text: t('strain') + ' 2', id: 2 },
+				{ text: t('strain') + ' 3', id: 3 },
+				{ text: t('strain') + ' 4', id: 4 }
 			]}
 			onchange={changePokerus}
 		/>
@@ -88,18 +89,18 @@
 		<RadioSelect
 			bind:value={mon.pokerus.strain}
 			options={[
-				{ text: 'None', id: 'None' },
-				{ text: 'Cured', id: 'Cured' }
+				{ text: t('none'), id: 'None' },
+				{ text: t('cured'), id: 'Cured' }
 			]}
 			onchange={changePokerus}
 		/>
 		<RadioSelect
 			bind:value={mon.pokerus.strain}
 			options={[
-				{ text: 'Strain 1', id: 1 },
-				{ text: 'Strain 2', id: 2 },
-				{ text: 'Strain 3', id: 3 },
-				{ text: 'Strain 4', id: 4 }
+				{ text: t('strain') + ' 1', id: 1 },
+				{ text: t('strain') + ' 2', id: 2 },
+				{ text: t('strain') + ' 3', id: 3 },
+				{ text: t('strain') + ' 4', id: 4 }
 			]}
 			onchange={changePokerus}
 		/>
@@ -107,7 +108,7 @@
 
 	{#if 'daysRemaining' in mon.pokerus}
 		<div class="flex flex-col">
-			<Label class="mb-[-10px]">Days Remaining</Label>
+			<Label class="mb-[-10px]">{t('daysRemaining')}</Label>
 			<NumberInput
 				bind:value={mon.pokerus.daysRemaining!}
 				min={1}

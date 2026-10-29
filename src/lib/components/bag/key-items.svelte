@@ -1,5 +1,6 @@
 <script lang="ts">
 	import keyItems from '$data/keyItems.json';
+	import { dn, t } from '$lib/i18n.svelte';
 	import type { Item } from '$parsers/types';
 	import { Combobox } from '$ui';
 	import { Button, Listgroup, ListgroupItem, P } from 'flowbite-svelte';
@@ -29,7 +30,11 @@
 		<ListgroupItem class="flex w-full flex-wrap py-3 sm:justify-between sm:flex-nowrap">
 			{#if contents[i]}
 				<div class="mt-2 mb-2 flex flex-col gap-4 w-full sm:w-auto">
-					<Combobox options={keyItems[PF].map((item) => item.name)} bind:value={contents[i].name} />
+					<Combobox
+						options={keyItems[PF].map((item) => item.name)}
+						bind:value={contents[i].name}
+						labelFn={(v) => dn('item', v, PF)}
+					/>
 					<div class="flex items-center gap-3">
 						<div
 							class="size-[35px] flex bg-white rounded-lg justify-center items-center border
@@ -48,7 +53,7 @@
 					<TrashBinSolid class="h-6 w-6" />
 				</Button>
 			{:else}
-				<P class="my-2 mx-1 p-1">Empty</P>
+				<P class="my-2 mx-1 p-1">{t('empty')}</P>
 				{#if i === contents.length}
 					<Button class="p-2! mr-1" onclick={() => addItem()} color="purple">
 						<PlusOutline class="h-5 w-5" />

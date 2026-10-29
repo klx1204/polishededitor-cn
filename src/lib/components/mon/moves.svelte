@@ -2,6 +2,7 @@
 	import MoveCard from '$components/mon/move-card.svelte';
 	import moves from '$data/moves.json';
 	import type { Form } from '$extractors/types';
+	import { categoryName, t } from '$lib/i18n.svelte';
 	import type { BoxMon, PartyMon } from '$parsers/types';
 	import { ColoredCard, NumberInput } from '$ui';
 	import { Button, Heading, Card, Label, P } from 'flowbite-svelte';
@@ -37,13 +38,13 @@
 	let data = $derived(mon.moveset.map((move) => moves[PF].find((m) => m.name === move)!));
 </script>
 
-<Heading tag="h5">Moves</Heading>
+<Heading tag="h5">{t('moves')}</Heading>
 <div class="flex flex-col gap-5 mt-7 w-full">
 	{#each Array(4) as _, i}
 		{#if mon.moveset[i] === 'None'}
 			<Card class="p-5 min-h-40 w-full max-w-none">
 				<div class="flex gap-5 justify-between">
-					<Heading tag="h5">Empty</Heading>
+					<Heading tag="h5">{t('empty')}</Heading>
 					{#if mon.moveset[i - 1] != 'None' || i === 0}
 						<Button
 							class="p-2! border-gray-300 hover:bg-gray-300 size-11"
@@ -67,7 +68,7 @@
 				<div class="flex sm:flex-nowrap flex-wrap gap-7 mt-5">
 					{#if 'powerPoints' in mon}
 						<div class="flex flex-col w-full">
-							<Label class="mb-[-10px]">Power Points</Label>
+							<Label class="mb-[-10px]">{t('powerPoints')}</Label>
 							<NumberInput
 								bind:value={mon.powerPoints[i]}
 								min={0}
@@ -76,7 +77,7 @@
 						</div>
 					{/if}
 					<div class="flex flex-col w-full">
-						<Label class="mb-[-10px]">PP Ups Used</Label>
+						<Label class="mb-[-10px]">{t('ppUps')}</Label>
 						<NumberInput
 							bind:value={mon.PPUPs[i]}
 							min={0}
@@ -100,25 +101,23 @@
 				<P italic class="my-5">{data[i].description}</P>
 				<div class="grid grid-cols-2 md:grid-cols-5 gap-3">
 					<div>
-						<Label>Base Power</Label>
+						<Label>{t('basePower')}</Label>
 						<P class="text-2xl">{data[i].basePower}</P>
 					</div>
 					<div>
-						<Label>Accuracy</Label>
+						<Label>{t('accuracy')}</Label>
 						<P class="text-2xl">{data[i].accuracy}%</P>
 					</div>
 					<div>
-						<Label>Max PP</Label>
+						<Label>{t('maxPp')}</Label>
 						<P class="text-2xl">{(data[i].powerPoints * (5 + mon.PPUPs[i])) / 5}</P>
 					</div>
 					<div>
-						<Label>Category</Label>
-						<P class="text-2xl"
-							>{data[i].category.at(0)! + data[i].category.slice(1).toLowerCase()}</P
-						>
+						<Label>{t('category')}</Label>
+						<P class="text-2xl">{categoryName(data[i].category)}</P>
 					</div>
 					<div>
-						<Label>Effect Chance</Label>
+						<Label>{t('effectChance')}</Label>
 						<P class="text-2xl">{data[i].effectChance}%</P>
 					</div>
 				</div>

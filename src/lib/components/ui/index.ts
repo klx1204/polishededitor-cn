@@ -2,6 +2,7 @@ export { default as Carousel } from './carousel.svelte';
 export { default as ColoredCard } from './colored-card.svelte';
 export { default as Combobox } from './combobox.svelte';
 export { default as Cycler } from './cycler.svelte'
+export { default as DataLabel } from './data-label.svelte';
 export { default as DropdownSelect } from './dropdown-select.svelte';
 export { default as FullCycler } from './full-cycler.svelte'
 export { default as Heal } from './heal.svelte';

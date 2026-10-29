@@ -1,6 +1,7 @@
 <script lang="ts">
 	import EmptyMonCard from '$components/mon/empty-mon-card.svelte';
 	import MonCard from '$components/mon/mon-card.svelte';
+	import { dn } from '$lib/i18n.svelte';
 	import type { PartyMon, Player } from '$parsers/types';
 
 	interface PartyProps {
@@ -38,7 +39,7 @@
 			caughtLevel: 1,
 			caughtLocation: 'New Bark Town',
 			hyperTraining: [false, false, false, false, false, false],
-			nickname: ['B', 'u', 'l', 'b', 'a', 's', 'a', 'u', 'r'],
+			nickname: dn('pokemon', 'Bulbasaur', PF).split(''),
 			OTNickname: player.name,
 			currentHP: 12,
 			stats: [12, 6, 6, 6, 6, 6],

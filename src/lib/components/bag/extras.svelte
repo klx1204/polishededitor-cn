@@ -2,6 +2,7 @@
 	import apricorns from '$data/apricorns.json';
 	import expCandy from '$data/expCandy.json';
 	import wings from '$data/wings.json';
+	import { dn, t } from '$lib/i18n.svelte';
 	import type { Bag } from '$parsers/types';
 	import { NumberInput } from '$ui';
 	import { Accordion, AccordionItem, Listgroup, ListgroupItem, P } from 'flowbite-svelte';
@@ -30,7 +31,12 @@
 			items: bag.apricorns,
 			dataSource: apricorns[PF],
 			max: 99,
-			getLabel: (item) => `${item.name}: ${apricorns[PF].find((a) => a.name === item.name)!.ball}`
+			getLabel: (item) =>
+				`${dn('item', item.name, PF)}: ${dn(
+					'item',
+					apricorns[PF].find((a) => a.name === item.name)!.ball,
+					PF
+				)}`
 		},
 		wings: {
 			items: bag.wings,
@@ -42,14 +48,13 @@
 
 <Accordion class="mt-8">
 	<AccordionItem>
-		{#snippet header()}Game Corner Coins{/snippet}
+		{#snippet header()}{t('gameCornerCoins')}{/snippet}
 		<NumberInput bind:value={bag.coins[0].qty} min={0} max={50000} />
 	</AccordionItem>
 
 	{#each Object.entries(itemConfigs) as [key, config]}
 		<AccordionItem>
-			{#snippet header()}{key.charAt(0).toUpperCase() +
-					key.slice(1).replace(/([A-Z])/g, ' $1')}{/snippet}
+			{#snippet header()}{t(key as 'candy' | 'apricorns' | 'wings')}{/snippet}
 			<Listgroup>
 				{#each config.items as item, i}
 					<ListgroupItem class="flex w-full flex-wrap py-3 gap-3 sm:justify-between sm:flex-nowrap">
@@ -64,7 +69,7 @@
 									alt={`Sprite of ${item.name}`}
 								/>
 							</div>
-							<P>{config.getLabel ? config.getLabel(item) : item.name}</P>
+							<P>{config.getLabel ? config.getLabel(item) : dn('item', item.name, PF)}</P>
 						</div>
 						<div>
 							<NumberInput bind:value={config.items[i].qty} min={0} max={config.max} />
@@ -76,7 +81,7 @@
 	{/each}
 
 	<AccordionItem>
-		{#snippet header()}Blue Card Points{/snippet}
+		{#snippet header()}{t('blueCardPoints')}{/snippet}
 		<NumberInput bind:value={bag.blueCard[0].qty} min={0} max={30} />
 	</AccordionItem>
 </Accordion>

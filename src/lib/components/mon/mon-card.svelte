@@ -1,8 +1,10 @@
 <script lang="ts">
 	import MonDrawer from '$components/mon/mon-drawer.svelte';
 	import pokemon from '$data/pokemon.json';
+	import { dn, t } from '$lib/i18n.svelte';
 	import type { BoxMon, PartyMon } from '$parsers/types';
-	import { ColoredCard, Heal, Healthbar, ItemIcon, MonSprite, TypeIcon } from '$ui';
+	import { displayName } from '$parsers/utils';
+	import { ColoredCard, Heal, Healthbar, ItemIcon, MonSprite, TypeIcon, DataLabel } from '$ui';
 	import { Heading, P, Button, Drawer } from 'flowbite-svelte';
 	import { EditSolid } from 'flowbite-svelte-icons';
 
@@ -23,7 +25,7 @@
 	<div class="flex gap-1 mb-3">
 		<MonSprite {mon} {PF} />
 		<div class="flex flex-col justify-between">
-			<Heading tag="h5">{mon.nickname.join('')}</Heading>
+			<Heading tag="h5">{displayName(mon.nickname)}</Heading>
 			<div class="flex gap-3">
 				<ItemIcon heldItem={mon.heldItem} {PF} />
 				{#each form.types as type}
@@ -36,9 +38,9 @@
 		<Healthbar {mon} />
 	{/if}
 	<P>Lv. {mon.level}</P>
-	<P>Held Item: {mon.heldItem}</P>
-	<P>Ability: {mon.ability}</P>
-	<P>Nature: {mon.nature}</P>
+	<P>{t('heldItem')}: <DataLabel kind="item" value={mon.heldItem} {PF} inline /></P>
+	<P>{t('ability')}: <DataLabel kind="ability" value={mon.ability} {PF} inline /></P>
+	<P>{t('nature')}: <DataLabel kind="nature" value={mon.nature} {PF} inline /></P>
 	<div class="flex absolute bottom-5 right-5 gap-3">
 		{#if 'currentHP' in mon && !mon.isEgg && (mon.status.name != 'None' || mon.currentHP != mon.stats[0])}
 			<Heal bind:mon {PF} />

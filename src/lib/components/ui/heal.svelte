@@ -1,5 +1,6 @@
 <script lang="ts">
 	import moves from '$data/moves.json';
+	import { t } from '$lib/i18n.svelte';
 	import type { PartyMon } from '$parsers/types';
 	import { Button } from 'flowbite-svelte';
 
@@ -22,5 +23,6 @@
 </script>
 
 <Button color="dark" class="hover:text-green-600 hover:dark:text-green-500" outline onclick={heal}
-	>Heal</Button
+	>{t('heal')}</Button
+>
 >

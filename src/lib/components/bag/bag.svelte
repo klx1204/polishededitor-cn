@@ -4,6 +4,7 @@
 	import KeyItems from '$components/bag/key-items.svelte';
 	import TMHM from '$components/bag/tmhm.svelte';
 	import items from '$data/items.json';
+	import { t } from '$lib/i18n.svelte';
 	import type { Item } from '$parsers/types';
 	import { RadioSelect } from '$ui';
 
@@ -16,13 +17,13 @@
 	<RadioSelect
 		bind:value={selectedSlot}
 		options={[
-			{ text: 'Items', id: 'items' },
-			{ text: 'Medicine', id: 'medicine' },
-			{ text: 'Balls', id: 'balls' },
-			{ text: 'TMs & HMs', id: 'TMsHMs' },
-			{ text: 'Berries', id: 'berries' },
-			{ text: 'Key Items', id: 'keyItems' },
-			{ text: 'Extras', id: 'extras' }
+			{ text: t('items'), id: 'items' },
+			{ text: t('medicine'), id: 'medicine' },
+			{ text: t('balls'), id: 'balls' },
+			{ text: t('tmsHms'), id: 'TMsHMs' },
+			{ text: t('berries'), id: 'berries' },
+			{ text: t('keyItems'), id: 'keyItems' },
+			{ text: t('extras'), id: 'extras' }
 		]}
 	/>
 </div>
@@ -30,18 +31,18 @@
 	<RadioSelect
 		bind:value={selectedSlot}
 		options={[
-			{ text: 'Items', id: 'items' },
-			{ text: 'Medicine', id: 'medicine' },
-			{ text: 'Balls', id: 'balls' },
-			{ text: 'TMs & HMs', id: 'TMsHMs' }
+			{ text: t('items'), id: 'items' },
+			{ text: t('medicine'), id: 'medicine' },
+			{ text: t('balls'), id: 'balls' },
+			{ text: t('tmsHms'), id: 'TMsHMs' }
 		]}
 	/>
 	<RadioSelect
 		bind:value={selectedSlot}
 		options={[
-			{ text: 'Berries', id: 'berries' },
-			{ text: 'Key Items', id: 'keyItems' },
-			{ text: 'Extras', id: 'extras' }
+			{ text: t('berries'), id: 'berries' },
+			{ text: t('keyItems'), id: 'keyItems' },
+			{ text: t('extras'), id: 'extras' }
 		]}
 	/>
 </div>

@@ -7,6 +7,7 @@
 	import Pokedex from '$components/pokedex/pokedex.svelte';
 	import addresses from '$data/addresses.json';
 	import versions from '$data/versions.json';
+	import { i18n, t } from '$lib/i18n.svelte';
 	import parseSave from '$parsers/parseSave';
 	import reverseParseSave from '$parsers/reverseParseSave';
 	import type { Data } from '$parsers/types';
@@ -21,17 +22,21 @@
 	let toastStatus: boolean = $state(false);
 	let editor: string = $state('Party');
 
+	$effect(() => {
+		if (toastMsg) toastStatus = true;
+	});
+
 	async function uploadSave(): Promise<void> {
-		if (!files![0]) return;
+		if (!files?.[0]) return;
 		toastStatus = true;
-		toastMsg = await validateSave(files![0]);
+		toastMsg = await validateSave(files[0]);
 		try {
-			data = parseSave(new Uint8Array(await files![0].arrayBuffer()), PF);
+			data = parseSave(new Uint8Array(await files[0].arrayBuffer()), PF);
 		} catch (error) {
 			console.log(error);
-			toastMsg = 'An unexpected bug has occured. Please report this to Rev3lation.';
+			toastMsg = t('unexpectedBug');
 		}
-		if (toastMsg === 'Save Validated!') {
+		if (toastMsg === t('saveValidated')) {
 			setTimeout(() => {
 				toastStatus = false;
 			}, 5000);
@@ -41,29 +46,27 @@
 
 	async function validateSave(file: File): Promise<string> {
 		if (file.size < 32000 || file.size > 33000) {
-			return "This doesn't seem like a save file. Make sure that it isn't an emulator save state.";
+			return t('notSaveFile');
 		}
 		const buffer = new Uint8Array(await file.arrayBuffer());
 		if (retrieve(buffer, addresses.sSaveVersion, 2) != versions.save) {
-			return `This save file is not of the latest version. The current version is ${versions.game}.`;
+			return `${t('wrongVersion')} ${versions.game}.`;
 		}
-		return 'Save Validated!';
+		return t('saveValidated');
 	}
 
 	async function downloadSave(): Promise<void> {
-		if (!files![0]) return;
+		if (!files?.[0] || !data) return;
 		Object.assign(document.createElement('a'), {
 			href: URL.createObjectURL(
 				new Blob([
-					reverseParseSave(new Uint8Array(await files![0].arrayBuffer()), data!, PF)
+					reverseParseSave(new Uint8Array(await files[0].arrayBuffer()), data, PF)
 						.buffer as ArrayBuffer
 				])
 			),
-			download: `${files![0].name.slice(0, files![0].name.lastIndexOf('.'))}_EDITED${files![0].name.slice(files![0].name.lastIndexOf('.'))}`
+			download: `${files[0].name.slice(0, files[0].name.lastIndexOf('.'))}_EDITED${files[0].name.slice(files[0].name.lastIndexOf('.'))}`
 		}).click();
 	}
-
-	$inspect(data);
 </script>
 
 <Toast
@@ -76,14 +79,38 @@
 
 <header class="flex justify-between mb-5 flex-wrap gap-5">
 	<Heading tag="h1">
-		<span class="dark:text-purple-500 text-purple-600">Polished</span> Editor
+		{#if i18n.lang === 'zh'}
+			<span class="dark:text-purple-500 text-purple-600">抛光水晶</span>编辑器
+			<span class="block text-base font-normal text-gray-500 dark:text-gray-400">
+				Polished Editor · 宝可梦 抛光水晶 存档修改器
+			</span>
+		{:else}
+			<span class="dark:text-purple-500 text-purple-600">Polished</span> Editor
+			<span class="block text-base font-normal text-gray-500 dark:text-gray-400">
+				Pokémon Polished Crystal save editor
+			</span>
+		{/if}
 	</Heading>
-	<div class="flex gap-5">
+	<div class="flex gap-3 items-center flex-wrap">
+		<div class="inline-flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+			<button
+				class="px-3 py-2 text-sm font-medium {i18n.lang === 'zh'
+					? 'bg-purple-600 text-white'
+					: 'bg-white dark:bg-gray-800 text-black dark:text-white'}"
+				onclick={() => i18n.set('zh')}>中文</button
+			>
+			<button
+				class="px-3 py-2 text-sm font-medium {i18n.lang === 'en'
+					? 'bg-purple-600 text-white'
+					: 'bg-white dark:bg-gray-800 text-black dark:text-white'}"
+				onclick={() => i18n.set('en')}>EN</button
+			>
+		</div>
 		<RadioSelect
 			bind:value={PF}
 			options={[
-				{ text: 'Polished', id: 'polished' },
-				{ text: 'Faithful', id: 'faithful' }
+				{ text: t('polished'), id: 'polished' },
+				{ text: t('faithful'), id: 'faithful' }
 			]}
 			onchange={uploadSave}
 		/>
@@ -93,19 +120,27 @@
 	</div>
 </header>
 
-<Label for="save" class="pb-2">Upload Save</Label>
-<div class="flex gap-5 text-nowrap mb-2">
+<Label for="save" class="pb-2">{t('uploadSave')}</Label>
+<div class="flex gap-5 text-nowrap mb-2 flex-wrap">
 	<Fileupload id="save" accept=".srm,.sav,.SaveRAM" bind:files onchange={uploadSave} />
-	<Button onclick={downloadSave} class="bg-purple-600 dark:bg-purple-500">Download Save</Button>
+	<Button onclick={downloadSave} class="bg-purple-600 dark:bg-purple-500"
+		>{t('downloadSave')}</Button
+	>
 </div>
-<Helper>.SRM / .SAV / .SaveRAM (Max. 33kB).</Helper>
+<Helper>{t('saveHint')}</Helper>
 
 <Instructions />
 
 {#if data}
 	<RadioSelect
 		bind:value={editor}
-		options={['Party', 'Boxes', 'Bag', 'Player', 'Pokedex'].map((e) => ({ id: e, text: e }))}
+		options={[
+			{ id: 'Party', text: t('party') },
+			{ id: 'Boxes', text: t('boxes') },
+			{ id: 'Bag', text: t('bag') },
+			{ id: 'Player', text: t('player') },
+			{ id: 'Pokedex', text: t('pokedex') }
+		]}
 	/>
 	<Hr class="my-5" />
 	{#if editor === 'Party'}<Party bind:party={data.party} player={data.player} {PF} />{/if}

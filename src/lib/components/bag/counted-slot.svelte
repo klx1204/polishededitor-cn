@@ -1,5 +1,6 @@
 <script lang="ts">
 	import items from '$data/items.json';
+	import { dn, i18n, t } from '$lib/i18n.svelte';
 	import type { Item } from '$parsers/types';
 	import { NumberInput, ItemIcon, Combobox } from '$ui';
 	import { Button, Listgroup, ListgroupItem, P } from 'flowbite-svelte';
@@ -37,6 +38,8 @@
 					<Combobox
 						options={itemList.map((item: any) => item.name)}
 						bind:value={contents[i].name}
+						labelFn={(v) => dn('item', v, PF)}
+						subFn={(v) => (i18n.lang === 'zh' ? v : undefined)}
 					/>
 					<div class="flex gap-5 items-center">
 						<ItemIcon heldItem={contents[i].name} {PF} />
@@ -52,7 +55,7 @@
 					</div>
 				</div>
 			{:else}
-				<P class="my-2 mx-1 p-1">Empty</P>
+				<P class="my-2 mx-1 p-1">{t('empty')}</P>
 				{#if contents[i - 1] || i === 0}
 					<Button class="p-2! mr-1 bg-purple-600 dark:bg-purple-500" onclick={() => addItem()}>
 						<PlusOutline class="h-5 w-5" />
