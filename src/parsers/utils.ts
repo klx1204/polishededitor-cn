@@ -15,6 +15,10 @@ const ZH_CHECKSUM_ZERO = 0x7c; // 0xFC with the checksum bit stripped
 // Page bytes used by the Chinese glyph table (observed range in the ROM).
 const ZH_PAGE_MIN = 0x0f;
 const ZH_PAGE_MAX = 0x2e;
+// Boxed Pokémon names use a second glyph page set: the standard page + 0x36.
+const ZH_BOX_PAGE_OFFSET = 0x36;
+const ZH_BOX_PAGE_MIN = ZH_PAGE_MIN + ZH_BOX_PAGE_OFFSET;
+const ZH_BOX_PAGE_MAX = ZH_PAGE_MAX + ZH_BOX_PAGE_OFFSET;
 
 const zhCodeToChar = new Map<number, string>();
 const zhCharToCode = new Map<string, number>();
@@ -76,8 +80,17 @@ export function displayName(name: string[]): string {
  * byte is masked with 0x7F first. For plain fields (party/player/box names)
  * the MSB is already clear on glyph page bytes, so the same mask is harmless
  * and lets one parser handle both layouts.
+ *
+ * Boxed Pokémon names additionally use glyph pages shifted by +0x36. That
+ * range overlaps the masked single-byte digits 0-4, so only treat a byte as a
+ * shifted page when the resulting glyph code is actually in the charmap.
  */
-function readChineseString(file: Uint8Array, address: number, length: number): string[] {
+function readChineseString(
+	file: Uint8Array,
+	address: number,
+	length: number,
+	boxPages: boolean
+): string[] {
 	const name: string[] = [];
 	let i = 0;
 	while (i < length) {
@@ -95,18 +108,31 @@ function readChineseString(file: Uint8Array, address: number, length: number): s
 			continue;
 		}
 
-		if (byte >= ZH_PAGE_MIN && byte <= ZH_PAGE_MAX && i + 1 < length) {
+		const isStandardPage = byte >= ZH_PAGE_MIN && byte <= ZH_PAGE_MAX;
+		const isBoxPage = boxPages && byte >= ZH_BOX_PAGE_MIN && byte <= ZH_BOX_PAGE_MAX;
+		if ((isStandardPage || isBoxPage) && i + 1 < length) {
 			const low = (file[address + i + 1] & 0x7f) | 0x80;
-			const code = (byte << 8) | low;
-			const char = zhCodeToChar.get(code);
+			let code = (byte << 8) | low;
+			let char = zhCodeToChar.get(code);
+			// Boxed Pokémon names shift every page byte by 0x36. Try the raw code
+			// first so rare codes that happen to live in that range still work.
+			if (char === undefined && isBoxPage) {
+				code = ((byte - ZH_BOX_PAGE_OFFSET) << 8) | low;
+				char = zhCodeToChar.get(code);
+			}
 			if (char !== undefined) {
 				name.push(char);
-			} else {
-				// Keep unknown glyph codes so a round-trip does not lose them.
-				name.push(`${ZH_UNKNOWN}${code.toString(16).toUpperCase().padStart(4, '0')}`);
+				i += 2;
+				continue;
 			}
-			i += 2;
-			continue;
+			// A shifted-page byte whose glyph is unknown is probably a masked
+			// single-byte character (e.g. the digit 1); fall through to the
+			// single-byte path. Standard pages keep unknown glyphs as tokens.
+			if (isStandardPage) {
+				name.push(`${ZH_UNKNOWN}${code.toString(16).toUpperCase().padStart(4, '0')}`);
+				i += 2;
+				continue;
+			}
 		}
 
 		const char = singleByteToChar.get(byte | 0x80);
@@ -190,7 +216,7 @@ export function readString(
 	length: number,
 	hasChecksum: boolean
 ): string[] {
-	const chinese = readChineseString(file, address, length);
+	const chinese = readChineseString(file, address, length, hasChecksum);
 	if (looksChinese(chinese)) return chinese;
 	return readEnglishString(file, address, length, hasChecksum);
 }
@@ -198,14 +224,16 @@ export function readString(
 /**
  * Encode a name using the Chinese variable-length layout. Newbox Pokémon names
  * are written with their high bits clear; `checksumBoxMon` fills the checksum
- * bits afterwards, and the reader re-applies them.
+ * bits afterwards, and the reader re-applies them. Their glyph page bytes are
+ * also shifted by +0x36, matching what the game itself writes.
  */
 function writeChineseString(
 	file: Uint8Array,
 	address: number,
 	length: number,
 	name: string[],
-	padByte: number
+	padByte: number,
+	boxPages: boolean
 ): void {
 	// Names that contain unmappable bytes come from damaged or foreign-encoded
 	// fields. Write the full field width so the original bytes survive instead
@@ -230,7 +258,11 @@ function writeChineseString(
 		// Two-byte Chinese glyph code.
 		if (code !== undefined && code > 0xff) {
 			if (bytes.length + 2 > limit) break;
-			bytes.push((code >> 8) & 0xff, code & 0xff);
+			let page = (code >> 8) & 0xff;
+			if (boxPages && page >= ZH_PAGE_MIN && page <= ZH_PAGE_MAX) {
+				page += ZH_BOX_PAGE_OFFSET;
+			}
+			bytes.push(page, code & 0xff);
 			continue;
 		}
 
@@ -255,7 +287,7 @@ export function writeString(
 	padByte = hasChecksum ? 0xfb : 0x53
 ): Uint8Array {
 	if (hasChineseName(name)) {
-		writeChineseString(file, address, length, name, padByte);
+		writeChineseString(file, address, length, name, padByte, hasChecksum);
 		return file;
 	}
 
