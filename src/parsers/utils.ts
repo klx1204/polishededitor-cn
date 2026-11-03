@@ -2,6 +2,19 @@ import charmap from '$data/charmap.json';
 import charmapZh from '$data/i18n/charmap-zh.json';
 
 const ZH_UNKNOWN = '\uE000';
+const ZH_UNKNOWN_BYTE = '\uE001';
+
+// Chinese text in the localization is stored as variable-length codes:
+// a two-byte glyph code (page byte + glyph byte) or a single-byte GSC
+// character (digits, Latin letters, symbols). The terminator is 0x53.
+const ZH_TERMINATOR = 0x53;
+const ZH_SPACE = 0x7f;
+const ZH_CHECKSUM_SPACE = 0x7a; // 0xFA with the checksum bit stripped
+const ZH_CHECKSUM_TERMINATOR = 0x7b; // 0xFB with the checksum bit stripped
+const ZH_CHECKSUM_ZERO = 0x7c; // 0xFC with the checksum bit stripped
+// Page bytes used by the Chinese glyph table (observed range in the ROM).
+const ZH_PAGE_MIN = 0x0f;
+const ZH_PAGE_MAX = 0x2e;
 
 const zhCodeToChar = new Map<number, string>();
 const zhCharToCode = new Map<string, number>();
@@ -14,48 +27,144 @@ for (const [hex, char] of Object.entries(charmapZh as Record<string, string>)) {
 	if (!zhCharToCode.has(char)) zhCharToCode.set(char, code);
 }
 
+// Single-byte GSC characters (0x80-0xFF) used for digits, Latin letters and
+// symbols inside names.
+const singleByteToChar = new Map<number, string>();
+const charToSingleByte = new Map<string, number>();
+for (const [hex, char] of Object.entries(charmap as Record<string, string>)) {
+	const code = parseInt(hex, 16);
+	if (code < 0x80 || code > 0xff || typeof char !== 'string' || char.length !== 1) continue;
+	if (!singleByteToChar.has(code)) singleByteToChar.set(code, char);
+	if (!charToSingleByte.has(char)) charToSingleByte.set(char, code);
+}
+
 export const chineseCharMap = charmapZh as Record<string, string>;
 export const chineseCodes = zhCodeToChar;
+
+/** True if a standalone character can be encoded in the Chinese name table. */
+export function isChineseChar(char: string): boolean {
+	return zhCharToCode.has(char);
+}
+
+/** True if a standalone character can be encoded as a single GSC byte. */
+export function isSingleByteChar(char: string): boolean {
+	return charToSingleByte.has(char);
+}
 
 /** True if a parsed name contains Chinese characters or preserved unknown codes. */
 export function hasChineseName(name: string[]): boolean {
 	return name.some(
-		(ch) => ch.startsWith(ZH_UNKNOWN) || zhCharToCode.has(ch) || /[\u3400-\u9fff]/.test(ch)
+		(ch) =>
+			ch.startsWith(ZH_UNKNOWN) ||
+			ch.startsWith(ZH_UNKNOWN_BYTE) ||
+			zhCharToCode.has(ch) ||
+			/[\u3400-\u9fff]/.test(ch)
 	);
 }
 
 /** Render a name array for display, hiding private-use unknown-code tokens. */
 export function displayName(name: string[]): string {
-	return name.map((ch) => (ch.startsWith(ZH_UNKNOWN) ? '〔?〕' : ch)).join('');
+	return name
+		.map((ch) => (ch.startsWith(ZH_UNKNOWN) ? '〔?〕' : ch.startsWith(ZH_UNKNOWN_BYTE) ? '?' : ch))
+		.join('');
 }
 
-function looksChinese(file: Uint8Array, address: number, length: number): boolean {
-	// Chinese names are stored as big-endian 16-bit glyph codes. English names use
-	// single-byte charmap codes, so a known Chinese code in the first pair is a
-	// reliable signal. Also allow a single leading ASCII character (for names like
-	// "A梦"), but do not scan deep into the field: uninitialized English name
-	// fields can contain byte pairs that coincidentally look like Chinese codes.
-	if (address + 1 >= file.length) return false;
-	const first = (file[address] << 8) | file[address + 1];
-	if (zhCodeToChar.has(first)) return true;
-	if (file[address] < 0x40 && address + 3 < file.length) {
-		const second = (file[address + 2] << 8) | file[address + 3];
-		return zhCodeToChar.has(second);
-	}
-	return false;
-}
-
+/**
+ * Parse a name using the Chinese variable-length encoding.
+ *
+ * The MSB of every byte in a newbox Pokémon name is a checksum bit, so the
+ * byte is masked with 0x7F first. For plain fields (party/player/box names)
+ * the MSB is already clear on glyph page bytes, so the same mask is harmless
+ * and lets one parser handle both layouts.
+ */
 function readChineseString(file: Uint8Array, address: number, length: number): string[] {
 	const name: string[] = [];
-	for (let i = 0; i + 1 < length; i += 2) {
-		const hi = file[address + i];
-		const lo = file[address + i + 1];
-		if (hi === 0x00 || hi === 0x53 || hi === 0xff) break;
-		const code = (hi << 8) | lo;
-		const char = zhCodeToChar.get(code);
-		name.push(char ?? `${ZH_UNKNOWN}${code.toString(16).toUpperCase().padStart(4, '0')}`);
+	let i = 0;
+	while (i < length) {
+		const byte = file[address + i] & 0x7f;
+
+		if (byte === ZH_TERMINATOR || byte === ZH_CHECKSUM_TERMINATOR) break;
+		if (byte === ZH_SPACE || byte === ZH_CHECKSUM_SPACE) {
+			name.push(' ');
+			i++;
+			continue;
+		}
+		if (byte === ZH_CHECKSUM_ZERO) {
+			name.push('0');
+			i++;
+			continue;
+		}
+
+		if (byte >= ZH_PAGE_MIN && byte <= ZH_PAGE_MAX && i + 1 < length) {
+			const low = (file[address + i + 1] & 0x7f) | 0x80;
+			const code = (byte << 8) | low;
+			const char = zhCodeToChar.get(code);
+			if (char !== undefined) {
+				name.push(char);
+			} else {
+				// Keep unknown glyph codes so a round-trip does not lose them.
+				name.push(`${ZH_UNKNOWN}${code.toString(16).toUpperCase().padStart(4, '0')}`);
+			}
+			i += 2;
+			continue;
+		}
+
+		const char = singleByteToChar.get(byte | 0x80);
+		if (char !== undefined) {
+			name.push(char);
+		} else {
+			// Preserve bytes we cannot map so saving a damaged name does not lose data.
+			name.push(`${ZH_UNKNOWN_BYTE}${(byte | 0x80).toString(16).toUpperCase().padStart(2, '0')}`);
+		}
+		i++;
 	}
 	return name;
+}
+
+function readEnglishString(
+	file: Uint8Array,
+	address: number,
+	length: number,
+	hasChecksum: boolean
+): string[] {
+	const name = [];
+	for (let i = 0; i < length; i++) {
+		//Strings including checksums in their MSBs will always have their MSBs set for decoding.
+		let byte = file[address + i];
+		if (hasChecksum) {
+			byte |= 0x80;
+		}
+		//Terminators (0x53 if there's no checksum, 0xFB if there is)
+		if (byte === 0x53 || byte === 0xfb) break;
+		//Space (0x7F if there's no checksum, 0xFA if there is)
+		if (byte === 0x7f || byte === 0xfa) {
+			name.push(' ');
+			continue;
+		}
+		//Zero (0x00 if there's no checksum, 0xFC if there is)
+		if (byte === 0 || byte === 0xfc) {
+			name.push('0');
+			continue;
+		}
+		name.push(charmap[byte.toString(16).toUpperCase() as keyof typeof charmap] ?? '?');
+	}
+	return name;
+}
+
+/**
+ * Heuristic: Chinese names are only accepted when the parser found at least
+ * one known glyph, or several unknown glyph codes in a row. This stops an
+ * English name such as "PIKACHU" from being misread as a broken Chinese name
+ * just because one byte happens to look like a glyph page.
+ */
+function looksChinese(name: string[]): boolean {
+	let known = 0;
+	let unknown = 0;
+	for (const ch of name) {
+		if (zhCharToCode.has(ch)) known++;
+		else if (ch.startsWith(ZH_UNKNOWN)) unknown++;
+	}
+	return known > 0 || unknown >= 2;
 }
 
 //This function accesses a subset of bytes and interprets them as one number in big endian format.
@@ -81,34 +190,16 @@ export function readString(
 	length: number,
 	hasChecksum: boolean
 ): string[] {
-	if (looksChinese(file, address, length)) {
-		return readChineseString(file, address, length);
-	}
-
-	const name = [];
-	for (let i = 0; i < length; i++) {
-		//Strings including checksums in their MSBs will always have their MSBs set for decoding.
-		let byte = file[address + i];
-		if (hasChecksum) {
-			byte |= 0x80;
-		}
-		//Terminators (0x53 if there's no checksum, 0xFB if there is)
-		if (byte === 0x53 || byte === 0xfb) break;
-		//Space (0x7F if there's no checksum, 0xFA if there is)
-		if (byte === 0x7f || byte === 0xfa) {
-			name.push(' ');
-			continue;
-		}
-		//Zero (0x00 if there's no checksum, 0xFC if there is)
-		if (byte === 0 || byte === 0xfc) {
-			name.push('0');
-			continue;
-		}
-		name.push(charmap[byte.toString(16).toUpperCase() as keyof typeof charmap] ?? '?');
-	}
-	return name;
+	const chinese = readChineseString(file, address, length);
+	if (looksChinese(chinese)) return chinese;
+	return readEnglishString(file, address, length, hasChecksum);
 }
 
+/**
+ * Encode a name using the Chinese variable-length layout. Newbox Pokémon names
+ * are written with their high bits clear; `checksumBoxMon` fills the checksum
+ * bits afterwards, and the reader re-applies them.
+ */
 function writeChineseString(
 	file: Uint8Array,
 	address: number,
@@ -116,20 +207,41 @@ function writeChineseString(
 	name: string[],
 	padByte: number
 ): void {
+	// Names that contain unmappable bytes come from damaged or foreign-encoded
+	// fields. Write the full field width so the original bytes survive instead
+	// of being truncated to make room for a terminator.
+	const keepBytes = name.some((ch) => ch.startsWith(ZH_UNKNOWN_BYTE));
+	const limit = keepBytes ? length : length - 1;
 	const bytes: number[] = [];
 	for (const ch of name) {
+		if (ch.startsWith(ZH_UNKNOWN_BYTE)) {
+			if (bytes.length + 1 > limit) break;
+			bytes.push(parseInt(ch.slice(ZH_UNKNOWN_BYTE.length), 16));
+			continue;
+		}
+
 		let code: number | undefined;
 		if (ch.startsWith(ZH_UNKNOWN)) {
 			code = parseInt(ch.slice(ZH_UNKNOWN.length), 16);
 		} else {
 			code = zhCharToCode.get(ch);
 		}
-		if (code === undefined) continue;
-		if (bytes.length + 2 > length - 1) break;
-		bytes.push((code >> 8) & 0xff, code & 0xff);
+
+		// Two-byte Chinese glyph code.
+		if (code !== undefined && code > 0xff) {
+			if (bytes.length + 2 > limit) break;
+			bytes.push((code >> 8) & 0xff, code & 0xff);
+			continue;
+		}
+
+		// Single-byte GSC character (digit, letter, symbol).
+		const single = code ?? charToSingleByte.get(ch);
+		if (single === undefined) continue;
+		if (bytes.length + 1 > limit) break;
+		bytes.push(single);
 	}
-	if (bytes.length + 2 <= length) bytes.push(0x53, 0x53);
-	else bytes.push(0x53);
+
+	if (!keepBytes) bytes.push(ZH_TERMINATOR);
 	for (let i = bytes.length; i < length; i++) bytes.push(padByte);
 	for (let i = 0; i < length; i++) file[address + i] = bytes[i];
 }

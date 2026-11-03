@@ -8,6 +8,7 @@ import movesZh from '$data/i18n/moves-zh.json';
 import naturesZh from '$data/i18n/natures-zh.json';
 import pokemonZh from '$data/i18n/pokemon-zh.json';
 import typesZh from '$data/i18n/types-zh.json';
+import { isSingleByteChar } from '$parsers/utils';
 
 export type Lang = 'zh' | 'en';
 export type PF = 'polished' | 'faithful';
@@ -359,12 +360,18 @@ export function isSupportedZhChar(char: string): boolean {
 	return zhChars.has(char);
 }
 
+/** Whether a name field can store this character (Chinese glyph or single GSC byte). */
+export function isSupportedNameChar(char: string): boolean {
+	return zhChars.has(char) || isSingleByteChar(char);
+}
+
 /** Fit a name into a fixed byte field, reserving one byte for the terminator. */
 export function fitNameChars(name: string, maxBytes: number): string[] {
 	const out: string[] = [];
 	let used = 0;
 	for (const char of Array.from(name)) {
-		const size = isSupportedZhChar(char) ? 2 : 1;
+		const size = zhChars.has(char) ? 2 : isSingleByteChar(char) ? 1 : 0;
+		if (size === 0) continue;
 		if (used + size > maxBytes) break;
 		out.push(char);
 		used += size;

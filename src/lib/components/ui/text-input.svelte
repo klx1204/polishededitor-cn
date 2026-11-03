@@ -1,6 +1,6 @@
 <script lang="ts">
 	import keyboard from '$data/keyboard.json';
-	import { i18n, isSupportedZhChar, t } from '$lib/i18n.svelte';
+	import { i18n, isSupportedNameChar, isSupportedZhChar, t } from '$lib/i18n.svelte';
 	import { displayName } from '$parsers/utils';
 	import { Button, Drawer, P } from 'flowbite-svelte';
 
@@ -15,7 +15,11 @@
 	let zhText = $state('');
 	let zhWarning = $state('');
 
-	let usedBytes = $derived(value.reduce((total, ch) => total + (isSupportedZhChar(ch) ? 2 : 1), 0));
+	function charBytes(char: string): number {
+		return isSupportedZhChar(char) ? 2 : isSupportedNameChar(char) ? 1 : 0;
+	}
+
+	let usedBytes = $derived(value.reduce((total, ch) => total + charBytes(ch), 0));
 
 	function openKeyboard(): void {
 		zhText = value.filter((ch) => !ch.startsWith('\uE000')).join('');
@@ -25,23 +29,32 @@
 
 	function applyChinese(): void {
 		const chars = Array.from(zhText);
-		const unsupported = chars.filter((ch) => !isSupportedZhChar(ch));
-		const accepted = chars.filter((ch) => isSupportedZhChar(ch));
-		const bytes = accepted.length * 2;
-		if (bytes > maxBytes - 1) {
-			zhWarning = `${t('unknownChars')} (${bytes}/${maxBytes - 1} bytes)`;
+		const unsupported: string[] = [];
+		const accepted: string[] = [];
+		let bytes = 0;
+		for (const ch of chars) {
+			const size = charBytes(ch);
+			if (size === 0 || bytes + size > maxBytes - 1) {
+				unsupported.push(ch);
+				continue;
+			}
+			accepted.push(ch);
+			bytes += size;
 		}
-		value = accepted.slice(0, Math.floor((maxBytes - 1) / 2));
+		value = accepted;
 		if (unsupported.length) {
 			zhWarning = `${t('unknownChars')}: ${unsupported.join(' ')}`;
+		} else {
+			zhWarning = '';
+			showKeyboard = false;
 		}
-		if (!zhWarning) showKeyboard = false;
 	}
 
 	function append(char: string): void {
-		if (usedBytes + 1 <= maxBytes - 1 && value.length < maxLength) {
+		const size = charBytes(char);
+		if (size > 0 && usedBytes + size <= maxBytes - 1 && value.length < maxLength) {
 			value = [...value, char];
-			if (usedBytes >= maxBytes - 1) showKeyboard = false;
+			if (usedBytes + size >= maxBytes - 1) showKeyboard = false;
 		}
 	}
 </script>
@@ -88,7 +101,7 @@
 
 		<div class="flex-1 overflow-y-auto p-4">
 			<div class="max-w-2xl mx-auto grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-				{#each keyboard as char}
+				{#each keyboard as char (char)}
 					<Button
 						color="light"
 						size="sm"
